@@ -1,0 +1,48 @@
+// Example Renovate configuration for the vendored-sources feature.
+//
+// This is a REPO-level config (renovate.json / renovate.json5). It declares a
+// custom "jsonata" manager so Renovate can read upstream versions out of
+// vendored.json, plus a packageRule that re-runs the sync tool after a bump.
+//
+// NOTE: `postUpgradeTasks` only runs commands that the SELF-HOSTED instance has
+// allow-listed via `allowedCommands`. See examples/renovate-workflow.yml.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  customManagers: [
+    {
+      customType: "jsonata",
+      description: "Track manifest-driven vendored sources",
+      fileFormat: "json",
+      // GLOB pattern (Renovate's default). Wrap in /.../ only for regex.
+      managerFilePatterns: ["**/vendored.json"],
+      matchStrings: [
+        'vendors.{ "depName": depName, "packageName": packageName, "datasource": datasource, "currentValue": currentValue, "currentDigest": currentDigest, "versioning": versioning, "extractVersion": extractVersion }',
+      ],
+    },
+  ],
+
+  packageRules: [
+    {
+      description: "Re-vendor upstream files after a manifest bump",
+      matchFileNames: ["vendored.json"],
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
+      postUpgradeTasks: {
+        // executionMode "update" runs this once per bumped dependency, so sync
+        // only that vendor by id instead of re-fetching every source.
+        commands: [
+          "python3 tools/sync-vendored.py --id {{{depName}}}",
+        ],
+        // Only files listed here are committed back by the post-upgrade task.
+        // List your manifest's `files[].target` paths (and vendored.json).
+        fileFilters: [
+          "vendored.json",
+          // e.g. "tools/sh-helpers",
+          // e.g. "schemas/compose-spec.json",
+        ],
+        executionMode: "update",
+      },
+    },
+  ],
+}

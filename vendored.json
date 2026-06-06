@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/forbish/vendored/main/schemas/vendored.schema.json",
+  "vendors": [
+    {
+      "id": "renovate-schema",
+      "fetch": { "type": "url-files" },
+      "files": [
+        {
+          "url": "https://docs.renovatebot.com/renovate-schema.json",
+          "target": "schemas/renovate-schema.json",
+          "digest": "sha256:be1689906b37f391789df5e93d0760dc0800af72b98dbdf5e7b95ca74732c5d5"
+        }
+      ]
+    }
+  ]
+}

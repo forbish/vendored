@@ -1,0 +1,46 @@
+name: ci
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+            - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+              with:
+                  python-version: "3.12"
+            - name: Install test dependencies
+              run: python3 -m pip install pytest==8.4.1
+            - name: Run tests
+              run: python3 -m pytest tests/ -q
+            - name: Verify vendored files are in sync
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: python3 tools/sync-vendored.py --check
+
+    lint:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              with:
+                  node-version: "24"
+            - name: Validate Renovate configs
+              run: >-
+                  npx --yes --package renovate@43.214.2 renovate-config-validator
+                  .github/renovate.json5 default.json examples/renovate.json5
+            - name: Lint install.sh
+              run: docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d install.sh

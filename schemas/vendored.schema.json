@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forb.sh/schemas/vendored-schema.json",
+  "title": "Vendored Sources Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vendors"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "vendors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/vendor"
+      }
+    }
+  },
+  "$defs": {
+    "vendor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "fetch", "files"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "datasource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "depName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packageName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "versioning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currentValue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currentDigest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "updateGroup": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extractVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fetch": {
+          "$ref": "#/$defs/fetch"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/file"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "fetch": {
+                "properties": {
+                  "type": {
+                    "not": { "const": "url-files" }
+                  }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "then": {
+            "required": ["datasource", "depName", "versioning", "currentValue"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "fetch": {
+                "properties": {
+                  "type": {
+                    "enum": ["github-tagged-files", "github-ref-files"]
+                  }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "files": {
+                "items": {
+                  "allOf": [
+                    {
+                      "required": ["source"]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "fetch": {
+                "properties": {
+                  "type": {
+                    "const": "github-ref-files"
+                  }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "then": {
+            "required": ["currentDigest"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "fetch": {
+                "properties": {
+                  "type": {
+                    "const": "url-files"
+                  }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "files": {
+                "items": {
+                  "allOf": [
+                    {
+                      "required": ["url", "digest"]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fetch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["github-tagged-files", "github-ref-files", "github-release-asset", "url-files"]
+        },
+        "repo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refTemplate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["github-tagged-files", "github-ref-files", "github-release-asset"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["repo"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "github-release-asset"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["asset"]
+          }
+        }
+      ]
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["url"] },
+          "then": {
+            "required": ["digest"],
+            "properties": { "source": false }
+          }
+        },
+        {
+          "if": { "required": ["source"] },
+          "then": {
+            "properties": { "url": false, "digest": false }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "description": "Shared preset for repos that vendor sources via tools/sync-vendored.py. Adds a jsonata custom manager that reads upstream versions from vendored.json. Consumers must still define postUpgradeTasks (run `python3 tools/sync-vendored.py --id {{{depName}}}`, whose --id resolves a vendor by id, depName, or packageName, with their files[].target fileFilters) and allow-list the command via RENOVATE_ALLOWED_COMMANDS.",
+    "customManagers": [
+        {
+            "customType": "jsonata",
+            "description": "Track manifest-driven vendored sources",
+            "fileFormat": "json",
+            "managerFilePatterns": [
+                "**/vendored.json"
+            ],
+            "matchStrings": [
+                "vendors.{ \"depName\": depName, \"packageName\": packageName, \"datasource\": datasource, \"currentValue\": currentValue, \"currentDigest\": currentDigest, \"versioning\": versioning, \"extractVersion\": extractVersion }"
+            ]
+        }
+    ]
+}

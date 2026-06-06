@@ -1,0 +1,11 @@
+{
+  // Renovate config for THIS repository (distinct from the consumer-facing
+  // preset in /default.json). Keeps the repo's own GitHub Actions current and
+  // pins them to commit SHAs. The $schema below is the locally vendored copy
+  // (see vendored.json) rather than the live URL — dogfooding the sync tool.
+  "$schema": "../schemas/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ]
+}

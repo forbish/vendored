@@ -1,0 +1,58 @@
+name: security
+
+on:
+    pull_request:
+    push:
+        branches: [main]
+    schedule:
+        - cron: "17 5 * * 1"
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    dependency-review:
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        timeout-minutes: 10
+        steps:
+            - name: Dependency review
+              uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+
+    codeql:
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+            contents: read
+            security-events: write
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+            - name: Initialize CodeQL
+              uses: github/codeql-action/init@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+              with:
+                  languages: python
+            - name: Autobuild
+              uses: github/codeql-action/autobuild@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+            - name: Analyze
+              uses: github/codeql-action/analyze@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+
+    pip-audit:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+            - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+              with:
+                  python-version: "3.12"
+            - name: Install tooling
+              run: python3 -m pip install pip-audit==2.9.0 pytest==8.4.1
+            - name: Audit Python dependencies
+              run: pip-audit
