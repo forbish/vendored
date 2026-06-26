@@ -548,6 +548,107 @@ def test_sync_vendor_writes_tagged_files_as_exact_bytes(tmp_path: Path) -> None:
     ).read_bytes() == payload
 
 
+def test_sync_vendor_applies_declared_replacements_before_writing(
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    manifest_path = repo_root / "vendored.json"
+    write_json(
+        manifest_path,
+        {
+            "vendors": [
+                {
+                    "id": "komodo",
+                    "datasource": "github-releases",
+                    "depName": "moghtech/komodo",
+                    "versioning": "semver",
+                    "currentValue": "v2.1.1",
+                    "fetch": {
+                        "type": "github-tagged-files",
+                        "repo": "moghtech/komodo",
+                        "refTemplate": "{{version}}",
+                    },
+                    "files": [
+                        {
+                            "source": "config/core.config.toml",
+                            "target": "stacks/compute/devops/config/komodo-core/core.config.example.toml",
+                            "replacements": [
+                                {
+                                    "from": "X-Xss-Protection",
+                                    "to": "X-XSS-Protection",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    manifest = load_manifest(manifest_path)
+    upstream_payload = b"## `X-Xss-Protection` header value.\n"
+    target = (
+        repo_root / "stacks/compute/devops/config/komodo-core/core.config.example.toml"
+    )
+    touch(target, b"old\n")
+
+    sync_vendor(
+        repo_root,
+        manifest.vendor("komodo"),
+        check=False,
+        urlopen=lambda url: FakeResponse(upstream_payload),
+    )
+
+    assert target.read_bytes() == b"## `X-XSS-Protection` header value.\n"
+
+
+def test_sync_vendor_check_accepts_declared_replacements(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    manifest_path = repo_root / "vendored.json"
+    write_json(
+        manifest_path,
+        {
+            "vendors": [
+                {
+                    "id": "komodo",
+                    "datasource": "github-releases",
+                    "depName": "moghtech/komodo",
+                    "versioning": "semver",
+                    "currentValue": "v2.1.1",
+                    "fetch": {
+                        "type": "github-tagged-files",
+                        "repo": "moghtech/komodo",
+                        "refTemplate": "{{version}}",
+                    },
+                    "files": [
+                        {
+                            "source": "config/core.config.toml",
+                            "target": "stacks/compute/devops/config/komodo-core/core.config.example.toml",
+                            "replacements": [
+                                {
+                                    "from": "X-Xss-Protection",
+                                    "to": "X-XSS-Protection",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    manifest = load_manifest(manifest_path)
+    target = (
+        repo_root / "stacks/compute/devops/config/komodo-core/core.config.example.toml"
+    )
+    touch(target, b"## `X-XSS-Protection` header value.\n")
+
+    sync_vendor(
+        repo_root,
+        manifest.vendor("komodo"),
+        check=True,
+        urlopen=lambda url: FakeResponse(b"## `X-Xss-Protection` header value.\n"),
+    )
+
+
 def test_sync_vendor_writes_release_asset_and_sets_executable_bit(
     tmp_path: Path,
 ) -> None:

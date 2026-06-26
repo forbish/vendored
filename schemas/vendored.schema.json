@@ -233,6 +233,12 @@
         },
         "executable": {
           "type": "boolean"
+        },
+        "replacements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/replacement"
+          }
         }
       },
       "allOf": [
@@ -250,6 +256,21 @@
           }
         }
       ]
+    },
+    "replacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

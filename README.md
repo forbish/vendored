@@ -69,7 +69,7 @@ repo gets editor validation without copying the schema in.
 | `extractVersion`                                   | Optional regex to normalise upstream tags.                          |
 | `fetch.type`                                       | How to fetch (see below).                                           |
 | `fetch.repo` / `fetch.refTemplate` / `fetch.asset` | Fetch parameters.                                                   |
-| `files[]`                                          | `source`/`url` → `target`, with optional `digest` and `executable`. |
+| `files[]`                                          | `source`/`url` → `target`, with optional `digest`, `executable`, and `replacements`. |
 
 ### Fetch types
 
@@ -133,6 +133,11 @@ The sync tool records a content digest for every fetch type after it writes a
 file, so once an entry has been synced once, `--check` needs no network access
 or token. Only entries that have never been synced (no stored digest) fall back
 to fetching from upstream to compare.
+
+`files[].replacements` applies simple UTF-8 text replacements to fetched content
+before writing, digesting, or checking it. Use this for reviewed local text
+normalizations that should be reproducible from the manifest instead of patched
+by hand after every sync.
 
 ### Authentication
 

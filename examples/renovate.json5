@@ -26,7 +26,7 @@
     {
       description: "Re-vendor upstream files after a manifest bump",
       matchFileNames: ["vendored.json"],
-      matchUpdateTypes: ["minor", "patch"],
+      matchUpdateTypes: ["digest", "minor", "patch"],
       automerge: true,
       postUpgradeTasks: {
         // executionMode "update" runs this once per bumped dependency, so sync

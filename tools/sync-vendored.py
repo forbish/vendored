@@ -106,12 +106,19 @@ def default_urlopen(url: str) -> ReadableResponse:
 
 
 @dataclass(frozen=True)
+class Replacement:
+    from_text: str
+    to_text: str
+
+
+@dataclass(frozen=True)
 class VendorFile:
     target: Path
     source: str | None = None
     url: str | None = None
     digest: str | None = None
     executable: bool = False
+    replacements: tuple[Replacement, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -146,6 +153,7 @@ class SyncPlanItem:
     target: Path
     executable: bool = False
     digest: str | None = None
+    replacements: tuple[Replacement, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -297,6 +305,38 @@ def parse_vendor_files(
             raise ValueError(
                 f"vendors[{index}].files[{file_index}].executable must be a boolean"
             )
+        raw_replacements = file_object.get("replacements", [])
+        if not isinstance(raw_replacements, list):
+            raise ValueError(
+                f"vendors[{index}].files[{file_index}].replacements must be an array"
+            )
+        replacements: list[Replacement] = []
+        for replacement_index, raw_replacement in enumerate(raw_replacements):
+            replacement_object = require_object(
+                raw_replacement,
+                (
+                    f"vendors[{index}].files[{file_index}]."
+                    f"replacements[{replacement_index}]"
+                ),
+            )
+            replacements.append(
+                Replacement(
+                    from_text=require_string(
+                        replacement_object.get("from"),
+                        (
+                            f"vendors[{index}].files[{file_index}]."
+                            f"replacements[{replacement_index}].from"
+                        ),
+                    ),
+                    to_text=require_string(
+                        replacement_object.get("to"),
+                        (
+                            f"vendors[{index}].files[{file_index}]."
+                            f"replacements[{replacement_index}].to"
+                        ),
+                    ),
+                )
+            )
 
         source = file_object.get("source")
         if fetch.type in {"github-tagged-files", "github-ref-files"}:
@@ -332,6 +372,7 @@ def parse_vendor_files(
                 url=file_url,
                 digest=file_digest,
                 executable=executable,
+                replacements=tuple(replacements),
             )
         )
     return tuple(files)
@@ -436,6 +477,7 @@ def plan_vendor_sync(vendor: Vendor) -> list[SyncPlanItem]:
                 target=vendor_file.target,
                 executable=vendor_file.executable,
                 digest=vendor_file.digest,
+                replacements=vendor_file.replacements,
             )
             for vendor_file in vendor.files
         ]
@@ -453,6 +495,7 @@ def plan_vendor_sync(vendor: Vendor) -> list[SyncPlanItem]:
                 target=vendor_file.target,
                 executable=vendor_file.executable,
                 digest=vendor_file.digest,
+                replacements=vendor_file.replacements,
             )
             for vendor_file in vendor.files
         ]
@@ -467,6 +510,7 @@ def plan_vendor_sync(vendor: Vendor) -> list[SyncPlanItem]:
                 target=vendor_file.target,
                 executable=vendor_file.executable,
                 digest=vendor_file.digest,
+                replacements=vendor_file.replacements,
             )
             for vendor_file in vendor.files
         ]
@@ -512,6 +556,18 @@ def sha256_digest_path(path: Path, chunk_size: int = 65536) -> str:
         while chunk := f.read(chunk_size):
             h.update(chunk)
     return "sha256:" + h.hexdigest()
+
+
+def apply_replacements(
+    payload: bytes, replacements: tuple[Replacement, ...]
+) -> tuple[bytes, str]:
+    updated = payload
+    for replacement in replacements:
+        updated = updated.replace(
+            replacement.from_text.encode("utf-8"),
+            replacement.to_text.encode("utf-8"),
+        )
+    return updated, "sha256:" + hashlib.sha256(updated).hexdigest()
 
 
 def _fetch_to_temp(
@@ -597,6 +653,11 @@ def _sync_vendor_url_files(
         )
         tmp_consumed = False
         try:
+            if vendor_file.replacements:
+                transformed_payload, new_digest = apply_replacements(
+                    fetched_tmp.read_bytes(), vendor_file.replacements
+                )
+                fetched_tmp.write_bytes(transformed_payload)
             local_digest = sha256_digest_path(target)
             if local_digest != new_digest:
                 fetched_tmp.replace(target)
@@ -651,6 +712,11 @@ def sync_vendor(
         fetched_tmp, fetched_digest = _fetch_to_temp(item.url, target, urlopen)
         tmp_consumed = False
         try:
+            if item.replacements:
+                transformed_payload, fetched_digest = apply_replacements(
+                    fetched_tmp.read_bytes(), item.replacements
+                )
+                fetched_tmp.write_bytes(transformed_payload)
             local_digest = sha256_digest_path(target)
             if check:
                 if local_digest != fetched_digest:
