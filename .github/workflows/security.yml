@@ -36,13 +36,13 @@ jobs:
         steps:
             - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+              uses: github/codeql-action/init@9f759ee644a3e7c15c1390abf49868036c00067b # v3
               with:
                   languages: python
             - name: Autobuild
-              uses: github/codeql-action/autobuild@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+              uses: github/codeql-action/autobuild@9f759ee644a3e7c15c1390abf49868036c00067b # v3
             - name: Analyze
-              uses: github/codeql-action/analyze@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+              uses: github/codeql-action/analyze@9f759ee644a3e7c15c1390abf49868036c00067b # v3
 
     pip-audit:
         runs-on: ubuntu-latest
