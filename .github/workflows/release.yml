@@ -66,7 +66,7 @@ jobs:
               with:
                   subject-path: dist/checksums.txt
             - name: Install cosign
-              uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+              uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
             - name: Sign checksums (keyless)
               env:
                   COSIGN_YES: "true"
